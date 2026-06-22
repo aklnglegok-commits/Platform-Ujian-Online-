@@ -4,6 +4,7 @@ import { initAuth, googleSignIn, logout, setCachedToken } from './firebase';
 import TeacherDashboard from './components/TeacherDashboard';
 import ExamScreen from './components/ExamScreen';
 import GsiButton from './components/GsiButton';
+import { Eye, EyeOff, Lock, LogIn, ArrowLeft } from 'lucide-react';
 
 export default function App() {
   const [role, setRole] = useState<'select' | 'teacher' | 'student'>('select');
@@ -12,83 +13,58 @@ export default function App() {
   const [needsAuth, setNeedsAuth] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [loginError, setLoginError] = useState('');
+  const [inputPassword, setInputPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
-  // Initialize Auth state listener with restricted email check
+  // Initialize custom local session with password check
   useEffect(() => {
-    const unsubscribe = initAuth(
-      async (currentUser, token) => {
-        const authorizedEmail = 'aklnglegok@gmail.com';
-        if (currentUser.email?.toLowerCase() === authorizedEmail) {
-          setUser(currentUser);
-          if (token) {
-            setAccessToken(token);
-            setCachedToken(token);
-            // Set in window so student exam screen can read it if testing on same machine
-            (window as any).teacherAccessToken = token;
-          }
-          setNeedsAuth(false);
-          setLoginError('');
-        } else {
-          // Automatic logout for non-authorized users
-          await logout();
-          setUser(null);
-          setAccessToken('');
-          setNeedsAuth(true);
-        }
-      },
-      () => {
-        setUser(null);
-        setAccessToken('');
-        setNeedsAuth(true);
-      }
-    );
-    return () => unsubscribe();
+    const isTeacherLoggedIn = localStorage.getItem('teacher_logged_in') === 'true';
+    if (isTeacherLoggedIn) {
+      setUser({
+        uid: 'teacher_admin_uid',
+        email: 'aklnglegok@gmail.com',
+        displayName: 'Guru Admin'
+      } as any as User);
+      setNeedsAuth(false);
+    } else {
+      setNeedsAuth(true);
+    }
   }, []);
 
-  const handleLogin = async () => {
-    setIsLoggingIn(true);
+  const handleCustomTeacherLogin = (e: React.FormEvent) => {
+    e.preventDefault();
     setLoginError('');
-    try {
-      const result = await googleSignIn();
-      if (result) {
-        const authorizedEmail = 'aklnglegok@gmail.com';
-        if (result.user.email?.toLowerCase() === authorizedEmail) {
-          setUser(result.user);
-          setAccessToken(result.accessToken);
-          setCachedToken(result.accessToken);
-          (window as any).teacherAccessToken = result.accessToken;
-          setNeedsAuth(false);
-          setLoginError('');
-        } else {
-          await logout();
-          setUser(null);
-          setAccessToken('');
-          setLoginError(`Akses Ditolak! Akun ${result.user.email} tidak memiliki hak akses sebagai admin.`);
-        }
-      }
-    } catch (err) {
-      console.error('Google Sign In failed:', err);
-      setLoginError('Gagal masuk menggunakan Google. Pastikan jaringan stabil dan coba lagi.');
-    } finally {
-      setIsLoggingIn(false);
+    setIsLoggingIn(true);
+    
+    // Check custom password requested by user
+    if (inputPassword === 'superadmin123') {
+      setUser({
+        uid: 'teacher_admin_uid',
+        email: 'aklnglegok@gmail.com',
+        displayName: 'Guru Admin'
+      } as any as User);
+      setNeedsAuth(false);
+      localStorage.setItem('teacher_logged_in', 'true');
+      setInputPassword(''); // clear password
+      setLoginError('');
+    } else {
+      setLoginError('Sandi yang Anda masukkan salah. Silakan periksa kembali!');
     }
+    setIsLoggingIn(false);
   };
 
   const handleLogout = async () => {
-    try {
-      await logout();
-      setUser(null);
-      setAccessToken('');
-      setNeedsAuth(true);
-      setRole('select');
-    } catch (err) {
-      console.error('Logout error:', err);
-    }
+    setUser(null);
+    setAccessToken('');
+    setNeedsAuth(true);
+    setRole('select');
+    localStorage.removeItem('teacher_logged_in');
   };
 
   const handleReauth = () => {
     setUser(null);
     setNeedsAuth(true);
+    localStorage.removeItem('teacher_logged_in');
   };
 
   return (
@@ -181,33 +157,61 @@ export default function App() {
             <div className="max-w-md w-full mx-auto px-4 py-24 flex flex-col justify-center min-h-[80vh]">
                <div className="bg-white border border-slate-200 rounded-xl p-6 md:p-8 shadow-sm text-center space-y-6">
                 <div className="bg-blue-50 text-blue-600 p-4 rounded-xl w-fit mx-auto border border-blue-150 animate-bounce">
-                  <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                  </svg>
+                  <Lock className="w-8 h-8" />
                 </div>
                 <div className="space-y-2 animate-fade-in">
-                  <h2 className="text-xl font-bold text-slate-800 tracking-tight">Otorisasi Akun Guru</h2>
+                  <h2 className="text-xl font-bold text-slate-800 tracking-tight">Login Khusus Guru</h2>
                   <p className="text-xs text-slate-500 leading-relaxed font-semibold">
-                    Silakan masuk menggunakan Google untuk mengelola ujian, bank soal, dan sinkronisasi rekap otomatis real-time.
+                    Silakan masukkan sandi khusus guru untuk mengakses dasbor evaluasi & bank soal.
                   </p>
                 </div>
 
-                <div className="pt-2 max-w-sm mx-auto">
-                  <GsiButton
-                    onClick={handleLogin}
+                <form onSubmit={handleCustomTeacherLogin} className="space-y-4 text-left max-w-sm mx-auto">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 font-mono">
+                      Kata Sandi Administrator Guru
+                    </label>
+                    <div className="relative flex items-center">
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        name="auth_password_input"
+                        id="auth_password_input"
+                        placeholder="Masukkan sandi..."
+                        value={inputPassword}
+                        onChange={(e) => setInputPassword(e.target.value)}
+                        className="w-full px-4 py-2.5 border border-slate-200 focus:border-blue-500 rounded-lg font-mono text-sm focus:ring-2 focus:ring-blue-100 outline-none pr-11 text-slate-800"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 text-slate-400 hover:text-slate-600 cursor-pointer"
+                        title={showPassword ? 'Sembunyikan Kata Sandi' : 'Tampilkan Kata Sandi'}
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
                     disabled={isLoggingIn}
-                    label={isLoggingIn ? 'Menghubungkan ke Google...' : 'Masuk dengan Google'}
-                  />
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-6 rounded-lg transition shadow-sm text-xs uppercase tracking-wider font-mono flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  >
+                    <LogIn className="w-4 h-4" />
+                    <span>Masuk ke Panel Guru</span>
+                  </button>
+
                   {loginError && (
-                    <div className="mt-3 bg-rose-50 border border-rose-150 text-rose-700 p-3 rounded-lg text-xs font-medium text-left">
+                    <div className="bg-rose-50 border border-rose-150 text-rose-700 p-3 rounded-lg text-xs font-semibold text-left">
                       ⚠️ {loginError}
                     </div>
                   )}
-                </div>
+                </form>
 
                 <div className="bg-amber-50 rounded-lg p-3.5 border border-amber-200 text-[11px] text-amber-800 leading-relaxed max-w-sm mx-auto text-left">
-                  <span className="font-bold text-[9px] uppercase font-mono bg-amber-200 text-amber-900 px-1.5 py-0.5 rounded tracking-wider mr-1.5">Kebijakan Keamanan:</span>
-                  Sistem dikonfigurasi dengan aman. Hanya email Google <code className="font-bold text-blue-700 bg-blue-50 border border-blue-100 rounded px-1">aklnglegok@gmail.com</code> yang diperbolehkan masuk sebagai admin guru.
+                  <span className="font-bold text-[9px] uppercase font-mono bg-amber-200 text-amber-900 px-1.5 py-0.5 rounded tracking-wider mr-1.5">Info Keamanan:</span>
+                  Sandi bersifat rahasia dan hanya diketahui oleh administrator guru. Jangan membagikan kata sandi ini kepada siswa.
                 </div>
 
                 <div className="pt-2 border-t border-slate-100">

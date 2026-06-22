@@ -1128,20 +1128,20 @@ export default function TeacherDashboard({ user, accessToken, onLogout, onReauth
     try {
       setIsLaunchingExam(true);
       
-      // Create a Google Spreadsheet directly for this exam session!
+      // Create a Google Spreadsheet directly for this exam session if accessToken is present!
       // This will ensure the evaluation is logged directly in Google Sheets automatically.
       let spreadsheetId = '';
-      if (!accessToken) {
-        // Token might have cleared or expired, ask for reauth
-        showAlert('info', 'Sesi login Google Sheets kedaluwarsa. Silakan lakukan proses otorisasi kembali.');
-        onReauth();
-        return;
+      if (accessToken) {
+        try {
+          showAlert('info', 'Sedang membuat Google Spreadsheet untuk rekap otomatis...');
+          const sheetData = await createGoogleSpreadsheet(accessToken, selectedBank.title);
+          spreadsheetId = sheetData.spreadsheetId;
+        } catch (sheetErr: any) {
+          console.warn('Google Spreadsheet creation failed, continuing with direct Supabase storage:', sheetErr);
+        }
+      } else {
+        showAlert('info', 'Menyiapkan sesi ujian baru...');
       }
-
-      showAlert('info', 'Sedang membuat Google Spreadsheet untuk rekap otomatis...');
-      
-      const sheetData = await createGoogleSpreadsheet(accessToken, selectedBank.title);
-      spreadsheetId = sheetData.spreadsheetId;
 
       await createActiveExam({
         code,

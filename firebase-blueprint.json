@@ -1,0 +1,75 @@
+{
+  "entities": {
+    "Question": {
+      "title": "Question",
+      "description": "A single multiple choice question.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "text": { "type": "string" },
+        "correctAnswer": { "type": "integer" },
+        "isActive": { "type": "boolean" }
+      },
+      "required": ["id", "text", "correctAnswer"]
+    },
+    "QuestionBank": {
+      "title": "QuestionBank",
+      "description": "A master question bank of multiple questions.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "createdAt": { "type": "integer" }
+      },
+      "required": ["id", "title", "description", "createdAt"]
+    },
+    "ActiveExam": {
+      "title": "ActiveExam",
+      "description": "An exam actively released for students.",
+      "type": "object",
+      "properties": {
+        "code": { "type": "string" },
+        "bankId": { "type": "string" },
+        "title": { "type": "string" },
+        "timeLimit": { "type": "integer" },
+        "spreadsheetId": { "type": "string" },
+        "createdAt": { "type": "integer" },
+        "isActive": { "type": "boolean" },
+        "teacherUid": { "type": "string" }
+      },
+      "required": ["code", "bankId", "title", "timeLimit", "createdAt", "isActive", "teacherUid"]
+    },
+    "StudentAttempt": {
+      "title": "StudentAttempt",
+      "description": "A student exam attempt submission log.",
+      "type": "object",
+      "properties": {
+        "studentName": { "type": "string" },
+        "studentClass": { "type": "string" },
+        "examCode": { "type": "string" },
+        "examTitle": { "type": "string" },
+        "score": { "type": "integer" },
+        "totalQuestions": { "type": "integer" },
+        "correctAnswersCount": { "type": "integer" },
+        "violationsCount": { "type": "integer" },
+        "submittedAt": { "type": "integer" }
+      },
+      "required": ["studentName", "studentClass", "examCode", "examTitle", "score", "totalQuestions", "correctAnswersCount", "violationsCount", "submittedAt"]
+    }
+  },
+  "firestore": {
+    "/question_banks/{bankId}": {
+      "schema": "QuestionBank",
+      "description": "Collection of question banks defined by teachers."
+    },
+    "/active_exams/{code}": {
+      "schema": "ActiveExam",
+      "description": "Collection of exams currently actively opened/managed."
+    },
+    "/student_attempts/{attemptId}": {
+      "schema": "StudentAttempt",
+      "description": "Log submissions from students that can be verified and listed."
+    }
+  }
+}

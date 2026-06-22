@@ -1,0 +1,6 @@
+{
+  "name": "Ujian Online Anti-Curang dan Rekap Sheets",
+  "description": "Platform evaluasi ujian dengan deteksi ganti tab browser, peringatan pelanggaran fullscreen, dan rekap otomatis ke Google Sheets.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
